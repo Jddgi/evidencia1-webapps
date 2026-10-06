@@ -1,0 +1,171 @@
+//Buenas noches, miss, aqui le agrego los codigos que utilice en las partes de esta tarea.
+
+Parte 1:
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class User extends Authenticatable
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+    ];
+
+    // Relación: Un usuario tiene muchas órdenes
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+}
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Order extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'order_number',
+        'total',
+        'status',
+    ];
+
+    // Relación: Una orden pertenece a un usuario
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+
+Parte 2:
+
+namespace Database\Factories;
+
+use App\Models\Order;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class OrderFactory extends Factory
+{
+    protected $model = Order::class;
+
+    public function definition(): array
+    {
+        return [
+            // Asigna un usuario existente o crea uno si la tabla está vacía
+            'user_id' => User::inRandomOrder()->first()->id ?? User::factory(),
+            
+            // Atributos simulados con FakerPHP
+            'order_number' => 'ORD-' . $this->faker->unique()->numberBetween(10000, 99999),
+            'total' => $this->faker->randomFloat(2, 15, 750), // decimal(8,2)
+            'status' => $this->faker->randomElement(['pending', 'processing', 'completed', 'cancelled']),
+            'created_at' => $this->faker->dateTimeThisYear(),
+        ];
+    }
+}
+
+namespace Database\Seeders;
+
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+
+class UserSeeder extends Seeder
+{
+    public function run(): void
+    {
+        User::create([
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        User::create([
+            'name' => 'Jane Smith',
+            'email' => 'jane@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        User::create([
+            'name' => 'Carlos Gomez',
+            'email' => 'carlos@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+    }
+}
+
+namespace Database\Seeders;
+
+use App\Models\Order;
+use Illuminate\Database\Seeder;
+
+class OrderSeeder extends Seeder
+{
+    public function run(): void
+    {
+        Order::factory()->count(50)->create();
+    }
+}
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $this->call([
+            UserSeeder::class,
+            OrderSeeder::class,
+        ]);
+    }
+}
+
+# Evidence Project - E-Commerce API
+
+## Description
+This repository contains the backend implementation for the Evidence Project, built with Laravel. The application manages core e-commerce workflows including user profiles, product items, categories, and customer orders. 
+
+Database seeding and factories have been configured with **FakerPHP** to generate realistic mock data (including 3 fixed users and 50 generated orders) with data types matching production requirements.
+
+## Entity Relationship Diagram (ERD)
+
+```mermaid
+erDiagram
+    USERS ||--o{ ORDERS : places
+    CATEGORIES ||--o{ ITEMS : contains
+    ORDERS ||--|{ ORDER_ITEMS : contains
+    ITEMS ||--|{ ORDER_ITEMS : included_in
+
+    USERS {
+        bigint id PK
+        string name
+        string email
+        timestamp created_at
+    }
+
+    ORDERS {
+        bigint id PK
+        bigint user_id FK
+        string order_number
+        decimal total
+        string status
+        timestamp created_at
+    }
+
+
+php artisan migrate:fresh --seed
+
